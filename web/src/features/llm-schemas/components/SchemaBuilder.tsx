@@ -42,25 +42,31 @@ export type SchemaBuilderProps = {
   disabled?: boolean;
 };
 
+/**
+ * Labelled with the JSON Schema keyword each row emits, so a user switching to
+ * a raw JSON view of the same schema reads the same words back. `number` and
+ * `integer` are both offered because the distinction is meaningful to a
+ * constrained decoding provider: `integer` forbids a decimal point.
+ */
 const TYPE_OPTIONS: {
   value: Exclude<PropertyType, "reference">;
   label: string;
 }[] = [
-  { value: "string", label: "Text" },
+  { value: "string", label: "String" },
   { value: "number", label: "Number" },
   { value: "integer", label: "Integer" },
-  { value: "boolean", label: "True / false" },
-  { value: "enum", label: "Choice" },
-  { value: "arrayOfScalars", label: "List of values" },
-  { value: "object", label: "Group" },
-  { value: "arrayOfObjects", label: "List of groups" },
+  { value: "boolean", label: "Boolean" },
+  { value: "enum", label: "Enum" },
+  { value: "arrayOfScalars", label: "Array of values" },
+  { value: "object", label: "Object" },
+  { value: "arrayOfObjects", label: "Array of objects" },
 ];
 
 const SCALAR_LABELS: Record<ScalarType, string> = {
-  string: "Text",
+  string: "String",
   number: "Number",
   integer: "Integer",
-  boolean: "True / false",
+  boolean: "Boolean",
 };
 
 type RowsProps = {
@@ -184,7 +190,7 @@ const PropertyRow: React.FC<
 
       {node.type === "enum" ? (
         <Input
-          aria-label="Choice values"
+          aria-label="Enum values"
           placeholder="value_a, value_b"
           value={node.enumValues.join(", ")}
           disabled={disabled}
