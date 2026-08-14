@@ -43,11 +43,14 @@ import { Input } from "@/src/components/ui/input";
 import Link from "next/link";
 import { SquareArrowOutUpRight } from "lucide-react";
 import { PromptVariableListPreview } from "@/src/features/prompts/components/PromptVariableListPreview";
-import { CodeMirrorEditor } from "@/src/components/editor/CodeMirrorEditor";
 import { PromptLinkingEditor } from "@/src/components/editor/PromptLinkingEditor";
+import { PromptConfigSection } from "./PromptConfigSection";
 import { usePostHogClientCapture } from "@/src/features/posthog-analytics/usePostHogClientCapture";
 import usePlaygroundCache from "@/src/features/playground/page/hooks/usePlaygroundCache";
-import { mergePlaygroundConfig } from "@/src/features/llm-schemas/promptConfig";
+import {
+  mergePlaygroundConfig,
+  parsePlaygroundConfig,
+} from "@/src/features/llm-schemas/promptConfig";
 import { useQueryParam } from "use-query-params";
 import { usePromptNameValidation } from "@/src/features/prompts/hooks/usePromptNameValidation";
 import { getPromptDetailHref } from "@/src/features/prompts/utils";
@@ -129,12 +132,18 @@ export const NewPromptForm: React.FC<NewPromptFormProps> = (props) => {
   ).data?.name;
 
   function onSubmit(values: NewPromptFormSchemaType) {
+    // Validated as JSON by the form schema before submit can run.
+    const parsedConfig = JSON.parse(values.config);
+
     capture(
       initialPrompt ? "prompts:update_form_submit" : "prompts:new_form_submit",
       {
         type: values.type,
         active: values.isActive,
         hasConfig: values.config !== "{}",
+        hasStructuredOutput: Boolean(
+          parsePlaygroundConfig(parsedConfig).structuredOutputSchema,
+        ),
         countVariables: currentExtractedVariables.length,
       },
     );
@@ -151,7 +160,7 @@ export const NewPromptForm: React.FC<NewPromptFormProps> = (props) => {
         projectId,
         type,
         prompt: chatPrompt,
-        config: JSON.parse(values.config),
+        config: parsedConfig,
         labels: values.isActive ? [PRODUCTION_LABEL] : [],
       };
     } else {
@@ -160,7 +169,7 @@ export const NewPromptForm: React.FC<NewPromptFormProps> = (props) => {
         projectId,
         type,
         prompt: textPrompt,
-        config: JSON.parse(values.config),
+        config: parsedConfig,
         labels: values.isActive ? [PRODUCTION_LABEL] : [],
       };
     }
@@ -409,18 +418,11 @@ export const NewPromptForm: React.FC<NewPromptFormProps> = (props) => {
           name="config"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Config</FormLabel>
-              <FormDescription>
-                Arbitrary JSON configuration that is available on the prompt.
-                Use this to track LLM parameters, function definitions, or any
-                other metadata.
-              </FormDescription>
-              <CodeMirrorEditor
+              <PromptConfigSection
                 value={field.value}
                 onChange={field.onChange}
                 onBlur={field.onBlur}
-                editable
-                mode="json"
+                projectId={projectId}
               />
               <FormMessage />
             </FormItem>
